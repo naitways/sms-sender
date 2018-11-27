@@ -1,0 +1,21 @@
+<?php
+$finder = PhpCsFixer\Finder::create()
+    ->exclude('vendor')
+    ->in(__DIR__ . '/src')
+;
+
+return PhpCsFixer\Config::create()
+    ->setFinder($finder)
+    ->setRules([
+        '@Symfony' => true,
+        'simplified_null_return' => false,
+        'concat_space' => ['spacing' => 'one'],
+        'phpdoc_summary' => false,
+        'linebreak_after_opening_tag' => true,
+        'ordered_imports' => true,
+        'phpdoc_order' => true,
+        'array_syntax' => ['syntax' => 'short'],
+        'declare_strict_types' => true,
+        'yoda_style' => false,
+    ])
+;

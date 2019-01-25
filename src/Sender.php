@@ -4,90 +4,36 @@ declare(strict_types=1);
 
 namespace SmsSender;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Cookie\CookieJar;
-use GuzzleHttp\Cookie\SetCookie;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
-use Psr\Log\LoggerInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 
-class Sender
+class Sender implements LoggerAwareInterface
 {
-    /** @var \Psr\Log\LoggerInterface $logger */
-    private $logger;
+    use LogFormatterTrait;
+    use LoggerAwareTrait;
 
-    public function __construct(LoggerInterface $logger)
+    private $host;
+    private $userName;
+    private $password;
+
+    public function __construct(string $host, string $userName, string $password)
     {
-        $this->logger = $logger;
+        $this->host = $host;
+        $this->userName = $userName;
+        $this->password = $password;
     }
 
-    private function formatForLog(string $message): string
+    public function send(string $phoneNumber, string $message, bool $rebootOnFail = false): bool
     {
-        return str_replace(['\r\n', '\n', '\r'], '<br />', $message);
-    }
+        $authenticator = new Authenticator($this->host, $this->userName, $this->password);
+        $client = $authenticator->auth();
 
-    public function send(string $host, string $userName, string $password, string $phoneNumber, string $message): bool
-    {
-        $auth = base64_encode($userName . ':' . md5($password));
-
-        $cookie = new SetCookie();
-        $cookie->setName('Authorization');
-        $cookie->setValue('Basic ' . $auth);
-        $cookie->setPath('/');
-        $cookie->setDomain($host);
-
-        $cookieJar = new CookieJar();
-        $cookieJar->setCookie($cookie);
-
-        $authClient = new Client([
-            'base_uri' => 'http://' . $host,
-            'cookies' => $cookieJar,
-        ]);
-        $authUri = 'http://' . $host . '/userRpm/LoginRpm.htm?Save=save';
-        $authRequest = new Request('GET', $authUri);
-
-        $authResponse = null;
-        try {
-            $authResponse = $authClient->send($authRequest);
-        } catch (GuzzleException $e) {
-            $this->logger->error('An error occur during the login request : request was not sent', [
-                'uri' => $authUri,
-                'exception' => $e,
-            ]);
-        }
-
-        $statusCode = $authResponse->getStatusCode();
-        $body = (string) $authResponse->getBody();
-        if ($statusCode !== 200) {
-            $this->logger->error('An error occur during the login request : auth request failed', [
-                'uri' => $authUri,
-                'response_code' => $statusCode,
-                'response_content' => $this->formatForLog($body),
-            ]);
-
+        if ($client === false) {
             return false;
         }
 
-        $matches = [];
-        $pattern = '/http:\/\/.*(?=\/Index.htm)/';
-        preg_match($pattern, $body, $matches);
-
-        if (\count($matches) < 1) {
-            $this->logger->error('An error occur during the login process : no sessions matched', [
-                'uri' => $authUri,
-                'matching_pattern' => $pattern,
-                'response_content' => $this->formatForLog($body),
-            ]);
-
-            return false;
-        }
-
-        $hostUri = reset($matches);
-        $smsClient = new Client([
-            'base_uri' => $hostUri,
-            'cookies' => $cookieJar,
-            'timeout' => 10,
-        ]);
         $now = new \DateTime();
         $sendTime = $now->format('Y,m,d,H,i,s');
 
@@ -102,6 +48,7 @@ class Sender
         ];
         $smsStringify = \json_encode($sms);
 
+        $hostUri = $client->getConfig(['base_uri']);
         $headers = [
             'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
             'Referer' => $hostUri . '_lte_SmsNewMessageCfgRpm.htm',
@@ -112,12 +59,19 @@ class Sender
         $smsResponse = null;
 
         try {
-            $smsResponse = $smsClient->send($smsRequest);
+            $smsResponse = $client->send($smsRequest);
         } catch (GuzzleException $e) {
             $this->logger->error('An error occur during the sending process : request was not sent', [
                 'uri' => $smsRequestUri,
                 'exception' => $e,
             ]);
+
+            if ($rebootOnFail) {
+                $rebootController = new RebootController();
+                $rebootController->rebootRouter($client);
+            }
+
+            return false;
         }
 
         $smsResponseBody = (string) $smsResponse->getBody();
@@ -128,6 +82,11 @@ class Sender
                 'response_code' => $smsResponse->getStatusCode(),
                 'response_content' => $this->formatForLog($smsResponseBody),
             ]);
+
+            if ($rebootOnFail) {
+                $rebootController = new RebootController();
+                $rebootController->rebootRouter($client);
+            }
 
             return false;
         }

@@ -85,6 +85,7 @@ class Authenticator implements LoggerAwareInterface
 
             return null;
         }
+        $this->logger->info('Successfully authenticated on the router');
 
         $hostUri = reset($matches);
 

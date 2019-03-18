@@ -32,7 +32,9 @@ class Sender implements LoggerAwareInterface
         $authenticator = new Authenticator($this->host, $this->userName, $this->password, $this->logger);
         $client = $authenticator->auth();
 
-        if ($client === false) {
+        if ($client === null) {
+            $this->logger->error('An error occurs during the authentication process');
+
             return false;
         }
 

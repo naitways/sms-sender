@@ -44,6 +44,7 @@ class RebootController implements LoggerAwareInterface
         }
 
         $this->logger->info('Reboot instruction was sent successfuly');
+
         return true;
     }
 }

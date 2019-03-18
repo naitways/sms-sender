@@ -48,7 +48,7 @@ class Sender implements LoggerAwareInterface
         ];
         $smsStringify = \json_encode($sms);
 
-        $hostUri = $client->getConfig(['base_uri']);
+        $hostUri = $client->getConfig('base_uri');
         $headers = [
             'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
             'Referer' => $hostUri . '_lte_SmsNewMessageCfgRpm.htm',

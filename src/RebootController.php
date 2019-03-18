@@ -6,11 +6,17 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
 class RebootController implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
     use LogFormatterTrait;
+
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->setLogger($logger);
+    }
 
     public function rebootRouter(Client $client): bool
     {

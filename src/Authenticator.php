@@ -11,6 +11,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
 class Authenticator implements LoggerAwareInterface
 {
@@ -21,11 +22,12 @@ class Authenticator implements LoggerAwareInterface
     private $userName;
     private $password;
 
-    public function __construct(string $host, string $userName, string $password)
+    public function __construct(string $host, string $userName, string $password, LoggerInterface $logger)
     {
         $this->host = $host;
         $this->userName = $userName;
         $this->password = $password;
+        $this->setLogger($logger);
     }
 
     public function auth(): ?Client

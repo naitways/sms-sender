@@ -24,12 +24,12 @@ class Sender implements LoggerAwareInterface
         $this->host = $host;
         $this->userName = $userName;
         $this->password = $password;
-        $this->logger = $logger;
+        $this->setLogger($logger);
     }
 
     public function send(string $phoneNumber, string $message, bool $rebootOnFail = false): bool
     {
-        $authenticator = new Authenticator($this->host, $this->userName, $this->password);
+        $authenticator = new Authenticator($this->host, $this->userName, $this->password, $this->logger);
         $client = $authenticator->auth();
 
         if ($client === false) {
@@ -69,7 +69,7 @@ class Sender implements LoggerAwareInterface
             ]);
 
             if ($rebootOnFail) {
-                $rebootController = new RebootController();
+                $rebootController = new RebootController($this->logger);
                 $rebootController->rebootRouter($client);
             }
 
@@ -86,7 +86,7 @@ class Sender implements LoggerAwareInterface
             ]);
 
             if ($rebootOnFail) {
-                $rebootController = new RebootController();
+                $rebootController = new RebootController($this->logger);
                 $rebootController->rebootRouter($client);
             }
 

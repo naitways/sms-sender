@@ -50,7 +50,6 @@ class StatusPage implements LoggerAwareInterface
         $headers = [
             'X-Requested-With' => 'XMLHttpRequest',
             'Referer' => $hostUri->__toString() . '/StatusRpm.htm',
-            'DNT' => 1,
             'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8'
         ];
 
@@ -61,9 +60,29 @@ class StatusPage implements LoggerAwareInterface
         $content = json_decode($body, true);
 
         if (!key_exists('wan', $content) || !key_exists('connectStatus', $content['wan'])) {
-            return false;
+            return null;
         }
 
-        return $content['wan']['connectStatus'] === 4;
+        switch ($content['wan']['connectStatus']) {
+            case 0:
+                $result = 'disable';
+                break;
+            case 1:
+                $result = 'disconnected';
+                break;
+            case 2:
+                $result = 'connecting';
+                break;
+            case 3:
+                $result = 'disconnecting';
+                break;
+            case 4:
+                $result = 'connected';
+                break;
+            default:
+                $result = 'Unknown';
+        }
+
+        return $result;
     }
 }

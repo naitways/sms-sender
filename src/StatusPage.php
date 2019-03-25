@@ -64,6 +64,6 @@ class StatusPage implements LoggerAwareInterface
             return false;
         }
 
-        return $content['wan']['connectStatus'] === 1;
+        return $content['wan']['connectStatus'] === 4;
     }
 }
